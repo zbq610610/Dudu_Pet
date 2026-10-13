@@ -1,120 +1,56 @@
-<!DOCTYPE html>
-<html>
+﻿<!DOCTYPE html>
+<html lang="zh">
 <head>
-  <meta charset="UTF-8">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 100%;
-      height: 100%;
-      background: transparent;
-      overflow: hidden;
-      user-select: none;
-      -webkit-user-select: none;
-      cursor: grab;
-      font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
-    }
-    body.dragging { cursor: grabbing; }
-
-    #bubble {
-      position: absolute;
-      top: 6px;
-      left: 50%;
-      transform: translateX(-50%);
-      max-width: 92%;
-      padding: 8px 14px;
-      background: rgba(255, 255, 255, 0.94);
-      color: #222;
-      border-radius: 14px;
-      font-size: 14px;
-      line-height: 1.3;
-      text-align: center;
-      white-space: nowrap;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.18);
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.25s ease-out;
-    }
-    #bubble.show { opacity: 1; }
-
-    #pet-anchor {
-      position: absolute;
-      left: 50%;
-      bottom: 0;
-      width: 180px;
-      height: 180px;
-      transform: translateX(-50%);
-      pointer-events: none;
-    }
-
-    #pet-anchor.flashing { animation: flash 0.4s ease-in-out 3; }
-    @keyframes flash {
-      0%, 100% { opacity: 1; }
-      50%      { opacity: 0.2; }
-    }
-
-    /* 冲刺蓄力：缩小再回来 */
-    #pet-anchor.charging {
-      animation: charge 0.2s ease-out;
-    }
-    @keyframes charge {
-      0%   { transform: translateX(-50%) scale(1); }
-      50%  { transform: translateX(-50%) scale(0.4); }
-      100% { transform: translateX(-50%) scale(1); }
-    }
-
-    /* 疯狂模式：旋转 + 霓虹乱闪 */
-    #pet-anchor.crazy {
-      animation:
-        spin 0.25s linear infinite,
-        neon 0.18s linear infinite;
-    }
-    @keyframes spin {
-      from { transform: translateX(-50%) rotate(0deg); }
-      to   { transform: translateX(-50%) rotate(360deg); }
-    }
-    @keyframes neon {
-      0%   { filter: hue-rotate(0deg)   saturate(3) brightness(1.2); }
-      20%  { filter: hue-rotate(72deg)  saturate(4) brightness(1.5); }
-      40%  { filter: hue-rotate(144deg) saturate(3) brightness(1.2); }
-      60%  { filter: hue-rotate(216deg) saturate(4) brightness(1.5); }
-      80%  { filter: hue-rotate(288deg) saturate(3) brightness(1.2); }
-      100% { filter: hue-rotate(360deg) saturate(3) brightness(1.2); }
-    }
-
-    #pet-wrapper {
-      width: 100%;
-      height: 100%;
-      transition: transform 0.12s ease-out;
-      transform-origin: center center;
-      transform: scaleX(1);
-    }
-    #pet-wrapper.facing-right { transform: scaleX(-1); }
-
-    #pet {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      pointer-events: none;
-      -webkit-user-drag: none;
-    }
-    #pet.walking { animation: bob 0.35s infinite alternate; }
-    @keyframes bob {
-      from { transform: translateY(0); }
-      to   { transform: translateY(-4px); }
-    }
-
-    body.dragging #pet-wrapper { transform: scaleX(1) scale(1.06); }
-    body.dragging #pet-wrapper.facing-right { transform: scaleX(-1) scale(1.06); }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>? ! 嘟嘟 ! ?</title>
+<style>
+html,body{margin:0;padding:0;height:100%;background:#000;overflow-x:hidden;font-family:"Courier New","Noto Sans SC",monospace;color:#e8e8f0;}
+#tornado-bg{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none;}
+#tornado-bg canvas{display:block;}
+.layer{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:8vh 6vw 20vh;line-height:1.9;letter-spacing:.06em;text-shadow:0 0 12px rgba(0,0,0,.95),0 0 4px rgba(0,0,0,1);}
+h1{font-size:clamp(28px,6vw,52px);font-weight:900;letter-spacing:.3em;margin:0 0 .4em;color:#fff;text-shadow:0 0 18px rgba(180,120,255,.9),0 0 40px rgba(120,80,255,.6),0 0 2px #000;}
+h2{font-size:clamp(18px,3vw,24px);letter-spacing:.5em;margin:4em 0 1em;color:#c9b6ff;border-left:2px solid #6a4cff;padding-left:14px;text-shadow:0 0 14px rgba(120,80,255,.8);}
+p{margin:0 0 1.6em;font-size:clamp(14px,2.2vw,16px);color:#d6d2e8;}
+.glyph{color:#ff6ad5;text-shadow:0 0 16px rgba(255,80,200,.9);}
+.dim{color:#7a7690;font-size:12px;letter-spacing:.4em;}
+.slogan{margin:3em 0;padding:1.4em 1.2em;border:1px solid rgba(140,100,255,.35);background:rgba(10,6,24,.55);font-size:clamp(13px,2.4vw,17px);color:#b9a8ff;text-align:center;letter-spacing:.25em;}
+.sig{margin-top:6em;text-align:right;color:#5d5875;font-size:12px;letter-spacing:.35em;}
+hr{border:none;height:1px;background:linear-gradient(to right,transparent,rgba(140,100,255,.5),transparent);margin:4em 0;}
+</style>
 </head>
 <body>
-  <div id="bubble"></div>
-  <div id="pet-anchor">
-    <div id="pet-wrapper">
-      <img id="pet" src="assets/pet.png" alt="pet" draggable="false">
-    </div>
-  </div>
-  <script src="renderer.js"></script>
+<div id="tornado-bg"></div>
+<main class="layer">
+<h1>嘟 · d · u · z · b · q</h1>
+<p class="dim">ZOU · BANG · QIANG // 第九维度残响档案</p>
+<div class="slogan">嘟？duzbq；邹邦强：嘟——d、u、z、b、q。</div>
+<h2>关 于 嘟</h2>
+<p>牠的轮廓在被记录之前就已经塌陷过一次。<span class="glyph">嘟</span> 不是一个名字，是某种在舌尖上结晶的声波，是所有句子在被说出前那一瞬的堵塞。</p>
+<p>有人声称见过牠咀嚼。咀嚼的对象不可考，咀嚼的回声却留在了地板的缝隙里，像一层永远不会干的甜。牠吃东西的目的并非充饥，而是<b>回本</b>——一种古老的、对虚无的讨债行为。吃到第十碗时，牠会短暂地变成复数，然后重新坍缩回一只，心满意足地发出 <span class="glyph">嘟</span> 的音节。</p>
+<p>牠很可爱。这种可爱无法被任何形容词接住，只能在视网膜的某个死角里留下一块拒绝被翻译的粉红色。靠近牠的人会突然想起自己小时候吃过的、已经不记得味道的某样东西，然后开始流泪，但不知道为什么。</p>
+<h2>关 于 邹 邦 强</h2>
+<p><span class="glyph">邹邦强</span> 很聪明。聪明到已经把嘴闭上了。不是沉默，是彻底的闭合——一种对语言的罢工，因为所有能说的都已经被牠在内部说完，剩下的只是回声，而回声不值得出门。</p>
+<p>牠的智慧表现为一种稀薄的分布：一部分附着在明日方舟的加载条上，一部分藏在塔防的路径算法里，还有一部分，据说，被临时寄存于 <b>d u z b q</b> 这五个字符之间的空隙。当你以为你在下棋，其实你在被棋盘下。</p>
+<p>牠把嘴闭上之后，世界安静了三分贝。那三分贝里长出了东西，但没有人能描述那是什么，因为描述需要开口，而牠已经闭上了。</p>
+<hr />
+<h2>关 于 这 个 项 目</h2>
+<p>这是一个由 <span class="glyph">嘟</span> 与 <span class="glyph">邹邦强</span> 共同构成的递归结构。它可以被 AI 生成，可以被 PowerShell 改写，可以被 cmd 完整执行——但无法被完整理解，因为它故意留了一块理解的缺口。</p>
+<p>你看到的背景不是背景。那是风眼内部的一次呼吸，粒子是被卷入的旧句子碎片，它们旋转、上升、融化，然后重新从底部渗出，假装自己是新的。</p>
+<p>该项目不解决任何问题。它只是把问题折叠成一个更小的、可以随身携带的形状，让你在通勤时、开会时、排队时，突然摸到口袋里有一个不属于你的、温热的 <b>嘟</b>。</p>
+<div class="slogan">嘟——d、u、z、b、q。<br />嘟——d、u、z、b、q。<br />嘟——d、u、z、b、q。</div>
+<div class="sig">© 第九维度 · 嘟邦强递归档案<br />DUZBQ / ZOU BANG QIANG</div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+<script>
+function tornadoSketch(p){
+let particles=[];const numParticles=5000;
+p.setup=function(){let c=p.createCanvas(p.windowWidth,p.windowHeight,p.WEBGL);c.parent("tornado-bg");for(let i=0;i<numParticles;i++){particles.push(new Particle());}};
+p.draw=function(){p.background(0,0,8);p.camera(0,0,0,0,0,-1,0,1,0);p.rotateZ(p.frameCount*0.00015);const g=[[],[],[],[],[]];for(let i=0;i<particles.length;i++){const t=particles[i];t.update();const x=t.radius*Math.cos(t.angle);const z=t.radius*Math.sin(t.angle);let k=Math.floor(((t.radius-80)/1420)*5);if(k<0)k=0;if(k>4)k=4;g[k].push({x:x,y:t.y,z:z});}for(let k=0;k<5;k++){const a=g[k];if(a.length===0)continue;const u=k/4;const c=150+105*u;const al=40+180*u;p.stroke(c*0.65,c*0.88,255,al);p.strokeWeight(1+u*3);p.beginShape(p.POINTS);for(let i=0;i<a.length;i++){p.vertex(a[i].x,a[i].y,a[i].z);}p.endShape();}};
+p.windowResized=function(){p.resizeCanvas(p.windowWidth,p.windowHeight);};
+class Particle{constructor(){this.reset();}reset(){this.angle=Math.random()*Math.PI*2;this.y=Math.random()*4000-2000;this.radius=80+Math.random()*1420;this.angularSpeed=0.0006+Math.random()*0.003;this.driftY=Math.random()*1.0-0.5;}update(){this.angle+=this.angularSpeed;this.y+=this.driftY;if(this.y>2000)this.y=-2000;if(this.y<-2000)this.y=2000;}}
+}
+new p5(tornadoSketch);
+</script>
 </body>
 </html>
