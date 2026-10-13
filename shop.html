@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>点数商城</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    margin: 0; padding: 16px; background: #f5f5f7; color: #222; font-size: 13px;
+  }
+  h1 { font-size: 15px; margin: 0 0 4px; }
+  .hint { color: #888; margin-bottom: 12px; font-size: 12px; }
+  .points {
+    font-size: 16px; font-weight: 900;
+    background: linear-gradient(90deg, #ff0080, #ff8c00, #ffd700, #00c853, #00b0ff, #aa00ff, #ff0080);
+    background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+    animation: scoreShift 3s linear infinite;
+    margin-bottom: 16px;
+  }
+  @keyframes scoreShift { from { background-position: 0% 50%; } to { background-position: 200% 50%; } }
+  .item {
+    padding: 12px 14px; background: white; border-radius: 8px;
+    margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  }
+  .item .info { flex: 1; }
+  .item .name { font-weight: 600; margin-bottom: 4px; }
+  .item .price { color: #0a84ff; font-size: 12px; }
+  .item .current { color: #888; font-size: 12px; }
+  .item button {
+    padding: 8px 16px; font-size: 13px; border: none; border-radius: 6px;
+    background: #0a84ff; color: white; cursor: pointer; font-weight: 600; white-space: nowrap;
+  }
+  .item button:hover:not(:disabled) { background: #006ee6; }
+  .item button:disabled { background: #ccc; cursor: not-allowed; opacity: 0.6; }
+  .item button.reset { background: #ff3b30; }
+  .item button.reset:hover { background: #d70000; }
+  .item button.unlocked { background: #00c853; }
+  .item button.maxed { background: #ff9500; opacity: 1; }
+  .footer {
+    margin-top: 16px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .status { color: #0a84ff; font-size: 12px; min-height: 16px; }
+  button.secondary {
+    padding: 7px 14px; font-size: 13px; border-radius: 6px;
+    border: 1px solid #ccc; background: white; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <h1>点数商城</h1>
+  <div class="hint">所有购买的数据都会永久保存</div>
+
+  <div class="points">点数: <span id="score">0</span></div>
+
+  <div class="item">
+    <div class="info">
+      <div class="name">重置</div>
+      <div class="price">花费 0 点数</div>
+      <div class="current">重置所有其他数据</div>
+    </div>
+    <button id="resetBtn" class="reset">重置</button>
+  </div>
+
+  <div class="item">
+    <div class="info">
+      <div class="name">食物数量 +20%</div>
+      <div class="price">花费: <span id="qPrice">100</span> 点数</div>
+      <div class="current">当前: <span id="qCurrent">100%</span></div>
+    </div>
+    <button id="buyQBtn">购买</button>
+  </div>
+
+  <div class="item">
+    <div class="info">
+      <div class="name">食物价值 +1</div>
+      <div class="price">花费: <span id="vPrice">200</span> 点数</div>
+      <div class="current">当前: <span id="vCurrent">1</span></div>
+    </div>
+    <button id="buyVBtn">购买</button>
+  </div>
+
+  <div class="item">
+    <div class="info">
+      <div class="name">全自动追踪食物</div>
+      <div class="price">花费: 1000 点数</div>
+      <div class="current">状态: <span id="acCurrent">未解锁</span></div>
+    </div>
+    <button id="buyACBtn">购买</button>
+  </div>
+
+  <div class="item">
+    <div class="info">
+      <div class="name">加速大吃一顿</div>
+      <div class="price">花费: 300 点数</div>
+      <div class="current">当前速度: <span id="spCurrent">100%</span>（已买 <span id="spCount">0</span>/9）</div>
+    </div>
+    <button id="buySPBtn">购买</button>
+  </div>
+
+  <div class="item">
+    <div class="info">
+      <div class="name">冲刺♿️</div>
+      <div class="price">花费: 1000 点数</div>
+      <div class="current">已买 <span id="dashCount">0</span>/10，CD <span id="dashCd">-</span></div>
+    </div>
+    <button id="buyDashBtn">购买</button>
+  </div>
+
+  <div class="footer">
+    <div class="status" id="status"></div>
+    <button id="closeBtn" class="secondary">关闭</button>
+  </div>
+
+  <script>
+    var $ = function (id) { return document.getElementById(id) }
+    var scoreEl = $('score')
+    var qPriceEl = $('qPrice'), vPriceEl = $('vPrice')
+    var qCurrentEl = $('qCurrent'), vCurrentEl = $('vCurrent')
+    var acCurrentEl = $('acCurrent')
+    var spCurrentEl = $('spCurrent'), spCountEl = $('spCount')
+    var dashCountEl = $('dashCount'), dashCdEl = $('dashCd')
+    var buyQBtn = $('buyQBtn'), buyVBtn = $('buyVBtn')
+    var buyACBtn = $('buyACBtn'), buySPBtn = $('buySPBtn'), buyDashBtn = $('buyDashBtn')
+    var resetBtn = $('resetBtn'), closeBtn = $('closeBtn')
+    var statusEl = $('status')
+
+    function load() {
+      window.petAPI.getShopData().then(function (data) {
+        scoreEl.textContent = data.score
+        qPriceEl.textContent = data.quantityPrice
+        vPriceEl.textContent = data.valuePrice
+        qCurrentEl.textContent = Math.round(data.quantityMultiplier * 100) + '%'
+        vCurrentEl.textContent = data.foodValue
+
+        buyQBtn.disabled = data.score < data.quantityPrice
+        buyVBtn.disabled = data.score < data.valuePrice
+
+        if (data.autoChase) {
+          acCurrentEl.textContent = '已解锁'
+          buyACBtn.textContent = '已解锁'
+          buyACBtn.disabled = true
+          buyACBtn.classList.add('unlocked')
+        } else {
+          acCurrentEl.textContent = '未解锁'
+          buyACBtn.textContent = '购买'
+          buyACBtn.disabled = data.score < data.autoChasePrice
+          buyACBtn.classList.remove('unlocked')
+        }
+
+        spCurrentEl.textContent = data.speedPercent + '%'
+        spCountEl.textContent = data.speedUpgrades
+        buySPBtn.classList.remove('unlocked', 'maxed')
+        if (!data.autoChase) {
+          buySPBtn.textContent = '未解锁'
+          buySPBtn.disabled = true
+        } else if (data.speedUpgrades >= data.maxSpeedUpgrades) {
+          buySPBtn.textContent = '已满级'
+          buySPBtn.disabled = true
+          buySPBtn.classList.add('maxed')
+        } else {
+          buySPBtn.textContent = '购买'
+          buySPBtn.disabled = data.score < data.speedPrice
+        }
+
+        dashCountEl.textContent = data.dashLevel
+        dashCdEl.textContent = data.dashLevel > 0 ? (data.dashCd / 1000).toFixed(0) + 's' : '-'
+        buyDashBtn.classList.remove('unlocked', 'maxed')
+        if (data.dashLevel >= data.maxDashLevel) {
+          buyDashBtn.textContent = '已满级'
+          buyDashBtn.disabled = true
+          buyDashBtn.classList.add('maxed')
+        } else if (data.dashLevel === 0) {
+          buyDashBtn.textContent = '解锁'
+          buyDashBtn.disabled = data.score < data.dashPrice
+        } else {
+          buyDashBtn.textContent = '升级'
+          buyDashBtn.disabled = data.score < data.dashPrice
+        }
+      })
+    }
+
+    function showStatus(msg) {
+      statusEl.textContent = msg
+      setTimeout(function () { statusEl.textContent = '' }, 1500)
+    }
+
+    buyQBtn.addEventListener('click', function () {
+      window.petAPI.buyQuantity().then(function (ok) {
+        if (ok) { showStatus('购买成功！'); load() } else { showStatus('点数不足') }
+      })
+    })
+    buyVBtn.addEventListener('click', function () {
+      window.petAPI.buyValue().then(function (ok) {
+        if (ok) { showStatus('购买成功！'); load() } else { showStatus('点数不足') }
+      })
+    })
+    buyACBtn.addEventListener('click', function () {
+      if (!confirm('花费 1000 点数解锁"全自动追踪食物"？')) return
+      window.petAPI.buyAutoChase().then(function (ok) {
+        if (ok) { showStatus('解锁成功！'); load() } else { showStatus('点数不足或已解锁') }
+      })
+    })
+    buySPBtn.addEventListener('click', function () {
+      window.petAPI.buySpeed().then(function (ok) {
+        if (ok) { showStatus('购买成功！'); load() } else { showStatus('点数不足或已达上限') }
+      })
+    })
+    buyDashBtn.addEventListener('click', function () {
+      window.petAPI.getShopData().then(function (data) {
+        var msg = data.dashLevel === 0
+          ? '花费 1000 点数解锁"冲刺♿️"？每次有食物时朝最密集方向冲刺。'
+          : '花费 1000 点数升级"冲刺♿️"？（CD -1s，当前 ' + (data.dashCd / 1000).toFixed(0) + 's）'
+        if (!confirm(msg)) return
+        window.petAPI.buyDash().then(function (ok) {
+          if (ok) { showStatus('购买成功！'); load() } else { showStatus('点数不足或已满级') }
+        })
+      })
+    })
+    resetBtn.addEventListener('click', function () {
+      if (!confirm('确定要重置吗？\n点数会归零，所有购买过的升级都会清空。')) return
+      window.petAPI.resetAll().then(function () { showStatus('已重置'); load() })
+    })
+    closeBtn.addEventListener('click', function () { window.close() })
+
+    load()
+  </script>
+</body>
+</html>

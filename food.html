@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    pointer-events: none;
+  }
+  #stage {
+    position: relative;
+    width: 100%; height: 100%;
+  }
+  .food {
+    position: absolute;
+    left: 0; top: 0;
+    object-fit: contain;
+    pointer-events: none;
+    -webkit-user-drag: none;
+    will-change: transform;
+    transition: filter 0.1s ease-out;
+  }
+
+  /* 被冲刺击中：偏红 + 红色光晕，等待碎裂 */
+  .food.hit {
+    filter: brightness(1.15) saturate(2.6) hue-rotate(-25deg)
+            drop-shadow(0 0 10px rgba(255, 40, 40, 0.95))
+            drop-shadow(0 0 22px rgba(255, 0, 0, 0.7));
+  }
+
+  /* +1 飘字 */
+  .plus-one {
+    position: absolute;
+    font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    font-weight: 900;
+    font-size: 32px;
+    color: #ffe066;
+    text-shadow:
+      0 0 10px #ff8c00,
+      0 0 20px #ff5c00,
+      0 2px 4px rgba(0,0,0,0.6);
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0;
+    animation: plusOneRise 0.95s ease-out forwards;
+    will-change: transform, opacity;
+  }
+  @keyframes plusOneRise {
+    0%   { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
+    18%  { transform: translate(-50%, -80%) scale(1.25); opacity: 1; }
+    60%  { transform: translate(-50%, -140%) scale(1.0); opacity: 1; }
+    100% { transform: translate(-50%, -220%) scale(0.9); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+  <div id="stage"></div>
+  <script src="food.js"></script>
+</body>
+</html>

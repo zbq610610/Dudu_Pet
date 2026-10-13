@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: grab;
+      font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+    body.dragging { cursor: grabbing; }
+
+    #bubble {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: 92%;
+      padding: 8px 14px;
+      background: rgba(255, 255, 255, 0.94);
+      color: #222;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.3;
+      text-align: center;
+      white-space: nowrap;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s ease-out;
+    }
+    #bubble.show { opacity: 1; }
+
+    #pet-anchor {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: 180px;
+      height: 180px;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    #pet-anchor.flashing { animation: flash 0.4s ease-in-out 3; }
+    @keyframes flash {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.2; }
+    }
+
+    /* 冲刺蓄力：缩小再回来 */
+    #pet-anchor.charging {
+      animation: charge 0.2s ease-out;
+    }
+    @keyframes charge {
+      0%   { transform: translateX(-50%) scale(1); }
+      50%  { transform: translateX(-50%) scale(0.4); }
+      100% { transform: translateX(-50%) scale(1); }
+    }
+
+    /* 疯狂模式：旋转 + 霓虹乱闪 */
+    #pet-anchor.crazy {
+      animation:
+        spin 0.25s linear infinite,
+        neon 0.18s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: translateX(-50%) rotate(0deg); }
+      to   { transform: translateX(-50%) rotate(360deg); }
+    }
+    @keyframes neon {
+      0%   { filter: hue-rotate(0deg)   saturate(3) brightness(1.2); }
+      20%  { filter: hue-rotate(72deg)  saturate(4) brightness(1.5); }
+      40%  { filter: hue-rotate(144deg) saturate(3) brightness(1.2); }
+      60%  { filter: hue-rotate(216deg) saturate(4) brightness(1.5); }
+      80%  { filter: hue-rotate(288deg) saturate(3) brightness(1.2); }
+      100% { filter: hue-rotate(360deg) saturate(3) brightness(1.2); }
+    }
+
+    #pet-wrapper {
+      width: 100%;
+      height: 100%;
+      transition: transform 0.12s ease-out;
+      transform-origin: center center;
+      transform: scaleX(1);
+    }
+    #pet-wrapper.facing-right { transform: scaleX(-1); }
+
+    #pet {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+      -webkit-user-drag: none;
+    }
+    #pet.walking { animation: bob 0.35s infinite alternate; }
+    @keyframes bob {
+      from { transform: translateY(0); }
+      to   { transform: translateY(-4px); }
+    }
+
+    body.dragging #pet-wrapper { transform: scaleX(1) scale(1.06); }
+    body.dragging #pet-wrapper.facing-right { transform: scaleX(-1) scale(1.06); }
+  </style>
+</head>
+<body>
+  <div id="bubble"></div>
+  <div id="pet-anchor">
+    <div id="pet-wrapper">
+      <img id="pet" src="assets/pet.png" alt="pet" draggable="false">
+    </div>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

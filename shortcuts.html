@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>快捷键设置</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    margin: 0; padding: 16px; background: #f5f5f7; color: #222; font-size: 13px;
+  }
+  h1 { font-size: 15px; margin: 0 0 4px; }
+  .hint { color: #888; margin-bottom: 14px; font-size: 12px; }
+  ul { list-style: none; padding: 0; margin: 0; }
+  li {
+    display: flex; gap: 10px; align-items: center;
+    padding: 10px 12px; background: white; border-radius: 6px;
+    margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  li .label { flex: 0 0 100px; color: #333; }
+  li .accel-input {
+    flex: 1; padding: 7px 10px; font-size: 13px;
+    border: 1px solid #ccc; border-radius: 6px;
+    background: #fafafa; cursor: pointer;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    outline: none; text-align: center;
+  }
+  li .accel-input:focus {
+    border-color: #0a84ff; background: #fff;
+    box-shadow: 0 0 0 2px rgba(10,132,255,0.15);
+  }
+  li .accel-input.empty { color: #aaa; font-style: italic; }
+  li button {
+    padding: 6px 10px; font-size: 12px;
+    border: 1px solid #ccc; background: white;
+    border-radius: 5px; cursor: pointer;
+  }
+  li button:hover { background: #f0f0f0; }
+  .footer {
+    margin-top: 16px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .status { color: #0a84ff; font-size: 12px; min-height: 16px; }
+  button.primary {
+    background: #0a84ff; color: white; border: 1px solid #0a84ff;
+    padding: 7px 14px; font-size: 13px; border-radius: 6px; cursor: pointer;
+  }
+  button.primary:hover { background: #006ee6; }
+  button.secondary {
+    padding: 7px 14px; font-size: 13px; border-radius: 6px;
+    border: 1px solid #ccc; background: white; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <h1>快捷键设置</h1>
+  <div class="hint">点击快捷键框后按下组合键即可修改；按 Esc 或点“删除”清空绑定</div>
+
+  <ul id="list"></ul>
+
+  <div class="footer">
+    <div class="status" id="status"></div>
+    <div>
+      <button id="saveBtn" class="primary">保存</button>
+      <button id="closeBtn" class="secondary">关闭</button>
+    </div>
+  </div>
+
+  <script>
+    var shortcuts = []
+    var listEl = document.getElementById('list')
+    var statusEl = document.getElementById('status')
+    var saveBtn = document.getElementById('saveBtn')
+    var closeBtn = document.getElementById('closeBtn')
+
+    function normalizeKeyName(e) {
+      var k = e.key
+      if (k === ' ') return 'Space'
+      if (k === 'Escape') return 'Escape'
+      if (k.indexOf('Arrow') === 0) return k.slice(5)
+      if (k.length === 1) return k.toUpperCase()
+      return k.charAt(0).toUpperCase() + k.slice(1)
+    }
+
+    function accelFromEvent(e) {
+      var parts = []
+      if (e.ctrlKey || e.metaKey) parts.push('CommandOrControl')
+      if (e.shiftKey) parts.push('Shift')
+      if (e.altKey) parts.push('Alt')
+
+      var key = e.key
+      if (key === 'Control' || key === 'Shift' || key === 'Alt' || key === 'Meta') return null
+
+      parts.push(normalizeKeyName(e))
+      return parts.join('+')
+    }
+
+    function render() {
+      listEl.innerHTML = ''
+      shortcuts.forEach(function (item) {
+        var li = document.createElement('li')
+
+        var labelEl = document.createElement('div')
+        labelEl.className = 'label'
+        labelEl.textContent = item.label
+        li.appendChild(labelEl)
+
+        var input = document.createElement('input')
+        input.type = 'text'
+        input.className = 'accel-input' + (item.accelerator ? '' : ' empty')
+        input.value = item.accelerator || '未设置（点击后按键）'
+        input.readOnly = true
+
+        input.addEventListener('focus', function () {
+          input.value = '请按组合键…'
+          input.classList.remove('empty')
+        })
+        input.addEventListener('blur', function () {
+          input.value = item.accelerator || '未设置（点击后按键）'
+          input.classList.toggle('empty', !item.accelerator)
+        })
+        input.addEventListener('keydown', function (e) {
+          e.preventDefault()
+          e.stopPropagation()
+          if (e.key === 'Escape') {
+            item.accelerator = ''
+            input.blur()
+            render()
+            return
+          }
+          var accel = accelFromEvent(e)
+          if (accel) {
+            item.accelerator = accel
+            input.blur()
+            render()
+          }
+        })
+        li.appendChild(input)
+
+        var clearBtn = document.createElement('button')
+        clearBtn.textContent = '删除'
+        clearBtn.addEventListener('click', function () {
+          item.accelerator = ''
+          render()
+        })
+        li.appendChild(clearBtn)
+
+        listEl.appendChild(li)
+      })
+    }
+
+    function load() {
+      window.petAPI.getShortcuts().then(function (data) {
+        shortcuts = Array.isArray(data) ? data.slice() : []
+        render()
+      })
+    }
+
+    saveBtn.addEventListener('click', function () {
+      window.petAPI.saveShortcuts(shortcuts).then(function (ok) {
+        if (ok) {
+          statusEl.textContent = '已保存，立即生效'
+          setTimeout(function () { statusEl.textContent = '' }, 1500)
+        } else {
+          statusEl.textContent = '保存失败'
+        }
+      })
+    })
+
+    closeBtn.addEventListener('click', function () { window.close() })
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && document.activeElement.tagName !== 'INPUT') {
+        window.close()
+      }
+    })
+
+    load()
+  </script>
+</body>
+</html>

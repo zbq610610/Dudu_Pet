@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>编辑词库</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    margin: 0; padding: 16px; background: #f5f5f7; color: #222; font-size: 13px;
+  }
+  h1 { font-size: 15px; margin: 0 0 4px; }
+  .hint { color: #888; margin-bottom: 12px; font-size: 12px; }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 12px; }
+  input[type=text] {
+    flex: 1; padding: 7px 10px; font-size: 13px;
+    border: 1px solid #ccc; border-radius: 6px; outline: none;
+  }
+  input[type=text]:focus { border-color: #0a84ff; }
+  button {
+    padding: 7px 12px; font-size: 13px; border: 1px solid #ccc;
+    background: white; border-radius: 6px; cursor: pointer;
+  }
+  button:hover { background: #f0f0f0; }
+  button.primary { background: #0a84ff; color: white; border-color: #0a84ff; }
+  button.primary:hover { background: #006ee6; }
+  ul { list-style: none; padding: 0; margin: 0; }
+  li {
+    display: flex; gap: 8px; align-items: center;
+    padding: 8px 10px; background: white; border-radius: 6px;
+    margin-bottom: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  li .text { flex: 1; word-break: break-all; }
+  li .edit-input {
+    flex: 1; padding: 4px 8px; font-size: 13px;
+    border: 1px solid #0a84ff; border-radius: 4px; outline: none;
+  }
+  li button { padding: 4px 10px; font-size: 12px; }
+  .empty { color: #888; text-align: center; padding: 24px; }
+  .footer {
+    margin-top: 16px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .status { color: #0a84ff; font-size: 12px; min-height: 16px; }
+</style>
+</head>
+<body>
+  <h1>编辑词库</h1>
+  <div class="hint">所有桌宠共享这份词库</div>
+
+  <div class="toolbar">
+    <input type="text" id="newPhrase" placeholder="输入新语句，按回车或点添加">
+    <button id="addBtn" class="primary">添加</button>
+  </div>
+
+  <ul id="list"></ul>
+
+  <div class="footer">
+    <div class="status" id="status"></div>
+    <div>
+      <button id="saveBtn" class="primary">保存</button>
+      <button id="closeBtn">关闭</button>
+    </div>
+  </div>
+
+  <script>
+    var phrases = []
+    var editingIndex = -1
+    var newPhraseInput = document.getElementById('newPhrase')
+    var addBtn = document.getElementById('addBtn')
+    var list = document.getElementById('list')
+    var saveBtn = document.getElementById('saveBtn')
+    var closeBtn = document.getElementById('closeBtn')
+    var status = document.getElementById('status')
+
+    function load() {
+      window.petAPI.getPhrases().then(function (data) {
+        phrases = Array.isArray(data) ? data.slice() : []
+        render()
+      })
+    }
+
+    function render() {
+      list.innerHTML = ''
+      if (phrases.length === 0) {
+        var empty = document.createElement('div')
+        empty.className = 'empty'
+        empty.textContent = '暂无语句，添加一条吧'
+        list.appendChild(empty)
+        return
+      }
+      phrases.forEach(function (text, i) {
+        var li = document.createElement('li')
+        if (i === editingIndex) {
+          var input = document.createElement('input')
+          input.type = 'text'
+          input.className = 'edit-input'
+          input.value = text
+          input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') commitEdit(i, input.value)
+            if (e.key === 'Escape') { editingIndex = -1; render() }
+          })
+          input.addEventListener('blur', function () { commitEdit(i, input.value) })
+          li.appendChild(input)
+          setTimeout(function () { input.focus(); input.select() }, 0)
+        } else {
+          var span = document.createElement('span')
+          span.className = 'text'
+          span.textContent = text
+          var editBtn = document.createElement('button')
+          editBtn.textContent = '编辑'
+          editBtn.addEventListener('click', function () { editingIndex = i; render() })
+          var delBtn = document.createElement('button')
+          delBtn.textContent = '删除'
+          delBtn.addEventListener('click', function () {
+            phrases.splice(i, 1); editingIndex = -1; render()
+          })
+          li.appendChild(span)
+          li.appendChild(editBtn)
+          li.appendChild(delBtn)
+        }
+        list.appendChild(li)
+      })
+    }
+
+    function commitEdit(i, val) {
+      var v = String(val || '').trim()
+      if (v) phrases[i] = v
+      editingIndex = -1
+      render()
+    }
+
+    function addPhrase() {
+      var v = newPhraseInput.value.trim()
+      if (!v) return
+      phrases.push(v)
+      newPhraseInput.value = ''
+      render()
+    }
+
+    addBtn.addEventListener('click', addPhrase)
+    newPhraseInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') addPhrase()
+    })
+
+    saveBtn.addEventListener('click', function () {
+      window.petAPI.savePhrases(phrases).then(function () {
+        status.textContent = '已保存'
+        setTimeout(function () { status.textContent = '' }, 1500)
+      })
+    })
+
+    closeBtn.addEventListener('click', function () { window.close() })
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') window.close()
+    })
+
+    load()
+  </script>
+</body>
+</html>

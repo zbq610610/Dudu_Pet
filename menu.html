@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; background: transparent; overflow: hidden;
+    font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+  #menu {
+    width: 100%; height: 100%;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 6px 22px rgba(0,0,0,0.24);
+    padding: 6px;
+    opacity: 1;
+    transition: opacity 0.4s ease-out;
+    overflow: hidden;
+  }
+  #menu.fading { opacity: 0; }
+  .item {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #222;
+    cursor: pointer;
+    line-height: 1.2;
+  }
+  .item:hover:not(.disabled) { background: #0a84ff; color: #fff; }
+  .item.disabled { cursor: default; }
+  .sep { height: 1px; background: #e6e6e6; margin: 4px 8px; }
+
+  /* 彩色加粗点数 */
+  .score {
+    display: inline-block;
+    font-weight: 900;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    background: linear-gradient(90deg, #ff0080, #ff8c00, #ffd700, #00c853, #00b0ff, #aa00ff, #ff0080);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: scoreShift 3s linear infinite;
+  }
+  @keyframes scoreShift {
+    from { background-position: 0% 50%; }
+    to   { background-position: 200% 50%; }
+  }
+</style>
+</head>
+<body>
+  <div id="menu"></div>
+  <script>
+    var menuEl = document.getElementById('menu')
+    var menuItems = []
+    var fadeTimer = null
+
+    window.petAPI.onMenuItems(function (items) {
+      menuItems = items || []
+      render()
+    })
+
+    function render() {
+      menuEl.innerHTML = ''
+      menuItems.forEach(function (it) {
+        if (it.type === 'separator') {
+          var s = document.createElement('div')
+          s.className = 'sep'
+          menuEl.appendChild(s)
+          return
+        }
+        var d = document.createElement('div')
+        d.className = 'item' + (it.enabled === false ? ' disabled' : '')
+        if (it.html) {
+          d.innerHTML = it.html
+        } else {
+          d.textContent = it.label
+        }
+        if (it.enabled !== false) {
+          d.addEventListener('click', function () {
+            window.petAPI.menuClick(it.id)
+          })
+        }
+        menuEl.appendChild(d)
+      })
+    }
+
+    function startFade() {
+      if (fadeTimer) clearTimeout(fadeTimer)
+      fadeTimer = setTimeout(function () {
+        menuEl.classList.add('fading')
+        setTimeout(function () { window.petAPI.menuClose() }, 420)
+      }, 1000)
+    }
+
+    document.body.addEventListener('mouseleave', function () {
+      startFade()
+    })
+    document.body.addEventListener('mouseenter', function () {
+      if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null }
+      menuEl.classList.remove('fading')
+    })
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') window.petAPI.menuClose()
+    })
+  </script>
+</body>
+</html>
